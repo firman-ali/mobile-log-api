@@ -242,15 +242,15 @@ def get_device_logs_metadata():
 
 
 @app.route('/view_log/<string:device_id>', methods=['GET'])
-def view_log_file(device_id_param): # Ubah nama parameter agar tidak konflik dengan device_id dari form
-    # ... (kode endpoint view_log tidak berubah, pastikan menggunakan device_id_param)
-    if not device_id_param: # Gunakan device_id_param
+def view_log_file(device_id): # <--- KEMBALIKAN NAMA PARAMETER KE device_id
+    if not device_id: # Gunakan device_id
         return jsonify({"error": "Device ID is required"}), 400
 
-    server_filename = secure_filename(device_id_param) + ".log" # Gunakan device_id_param
+    # Tentukan nama file di server berdasarkan device_id
+    server_filename = secure_filename(device_id) + ".log" # Gunakan device_id
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], server_filename)
 
-    app.logger.info(f"Attempting to view log file for Device ID: {device_id_param} at path: {filepath}") # Gunakan device_id_param
+    app.logger.info(f"Attempting to view log file for Device ID: {device_id} at path: {filepath}") # Gunakan device_id
 
     if os.path.exists(filepath):
         try:
@@ -261,10 +261,10 @@ def view_log_file(device_id_param): # Ubah nama parameter agar tidak konflik den
                 mimetype='text/plain'
             )
         except Exception as e:
-            app.logger.error(f"Error sending file {server_filename} for device {device_id_param}: {e}", exc_info=True) # Gunakan device_id_param
+            app.logger.error(f"Error sending file {server_filename} for device {device_id}: {e}", exc_info=True) # Gunakan device_id
             return jsonify({"error": f"Could not send file: {str(e)}"}), 500
     else:
-        app.logger.warning(f"Log file not found for Device ID: {device_id_param} at path: {filepath}") # Gunakan device_id_param
+        app.logger.warning(f"Log file not found for Device ID: {device_id} at path: {filepath}") # Gunakan device_id
         return jsonify({"error": "Log file not found for this device ID"}), 404
 
 def parse_timestamp_from_log_entry_str(timestamp_str):
