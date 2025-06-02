@@ -7,4 +7,4 @@ docker stop mobile-log-api
 docker rm mobile-log-api
 
 ## Run Docker Image
-docker run --name mobile-log-api -d -p 5001:5000 -e LOG_RETENTION_DAYS=45 -v "$(Get-Location)/uploads:/app/uploads" -v "$(Get-Location)/instance:/app/instance" log_api
+docker run --name mobile-log-api -d -p 5001:5000 --env-file ./conf/.env -v "$(Get-Location)/uploads:/app/uploads" -v "$(Get-Location)/instance:/app/instance" log_api

@@ -6,6 +6,11 @@ from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from functools import wraps
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 
@@ -20,6 +25,17 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 db = SQLAlchemy(app)
+
+EXPECTED_API_KEY = os.environ.get("LOG_API_KEY", "")
+
+# Inisialisasi Limiter
+limiter = Limiter(
+    get_remote_address, # Gunakan IP address klien sebagai dasar limit
+    app=app,
+    default_limits=["200 per day", "50 per hour", "5 per minute"], # Contoh limit default
+    storage_uri="memory://",  # Atau gunakan Redis jika Anda punya banyak worker/instance
+    # strategy="fixed-window" # atau "moving-window"
+)
 
 # --- Model Database ---
 # (Model DeviceLogFile tetap sama)
@@ -48,6 +64,16 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('X-API-KEY') # Klien akan mengirim di header ini
+        if not api_key or api_key != EXPECTED_API_KEY:
+            app.logger.warning(f"Unauthorized API access attempt. Provided key: {api_key}")
+            return jsonify({"error": "Unauthorized: Invalid or missing API Key"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- Fungsi Helper untuk Pengaturan ---
 def get_log_retention_days():
@@ -142,6 +168,8 @@ scheduler.add_job(cleanup_old_logs, 'cron', hour=2, minute=0)
 # --- Endpoint API ---
 # (Endpoint /upload_log, /device_logs_metadata, /view_log/<device_id> tetap sama)
 @app.route('/upload_log', methods=['POST'])
+@require_api_key
+@limiter.limit("10 per minute;200 per hour")
 def upload_log_file():
     # ... (kode endpoint upload_log_file tidak berubah)
     if 'log_file' not in request.files:
@@ -224,6 +252,7 @@ def upload_log_file():
         return jsonify({"error": f"Could not process log file: {str(e)}"}), 500
 
 @app.route('/device_logs_metadata', methods=['GET'])
+@require_api_key
 def get_device_logs_metadata():
     # ... (kode endpoint device_logs_metadata tidak berubah)
     try:
@@ -242,6 +271,7 @@ def get_device_logs_metadata():
 
 
 @app.route('/view_log/<string:device_id>', methods=['GET'])
+@require_api_key
 def view_log_file(device_id): # <--- KEMBALIKAN NAMA PARAMETER KE device_id
     if not device_id: # Gunakan device_id
         return jsonify({"error": "Device ID is required"}), 400
@@ -278,6 +308,7 @@ def parse_timestamp_from_log_entry_str(timestamp_str):
             return None
 # --- Endpoint API Baru untuk Mengatur Durasi Retensi Log ---
 @app.route('/api/settings/log_retention', methods=['GET', 'POST'])
+@require_api_key
 def manage_log_retention_settings():
     if request.method == 'POST':
         data = request.get_json()
