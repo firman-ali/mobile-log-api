@@ -1,0 +1,38 @@
+services:
+  log_api_app:
+    build: .
+    container_name: mobile_log_api_app_c
+    ports:
+      - "5001:5000"
+    env_file:
+      - ./conf/.env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./instance:/app/instance
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  db:
+    image: postgres:13-alpine
+    container_name: mobile_log_postgres_db_c
+    environment:
+      - POSTGRES_USER=log_user
+      - POSTGRES_PASSWORD=log_password
+      - POSTGRES_DB=log_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:6-alpine
+    container_name: mobile_log_redis_c
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
