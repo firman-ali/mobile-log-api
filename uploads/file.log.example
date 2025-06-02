@@ -1,0 +1,9 @@
+--- API Error Log ---
+Timestamp: STRING
+Device Name: STRING
+Device ID: STRING
+Endpoint: STRING
+Method: STRING
+Status Code: INTEGER
+Response Body: OBJECT
+--- End Log Entry ---
