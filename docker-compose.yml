@@ -17,10 +17,8 @@ services:
   db:
     image: postgres:13-alpine
     container_name: mobile_log_postgres_db_c
-    environment:
-      - POSTGRES_USER=log_user
-      - POSTGRES_PASSWORD=log_password
-      - POSTGRES_DB=log_db
+    env_file:
+      - ./conf/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -31,7 +29,7 @@ services:
     image: redis:6-alpine
     container_name: mobile_log_redis_c
     ports:
-      - "6379:6379"
+      - "6380:6379"
     restart: unless-stopped
 
 volumes:
