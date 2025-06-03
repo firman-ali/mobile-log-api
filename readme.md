@@ -1,10 +1,10 @@
-## Stop and Remove Container
+# Stop and Remove Container
 
-# if already run container with name mobile-log-api remove first
+## if already run container with name mobile-log-api remove first
 
 docker compose down log_api_app
 
-## Run Docker Compose for build and deploy app, db, and redis
+# Run Docker Compose for build and deploy app, db, and redis
 
 docker compose up -d --build
 
